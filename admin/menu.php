@@ -2,6 +2,17 @@
 if( !defined('ABSPATH') ){ exit();}
 add_action('admin_menu', 'xyz_smap_menu');
 
+if (!function_exists("xyz_redirect")) {
+    function xyz_redirect($url)
+    {
+        if (headers_sent()) {
+            echo "<script> location.href = \"$url\";</script>";
+        } else {
+            header("Location: $url");
+        }
+    }
+}
+
 function xyz_smap_add_admin_scripts()
 {
 	wp_enqueue_script('jquery');
@@ -47,21 +58,21 @@ function xyz_smap_republish()
                 $_POST['xyz_smap_twpost_permission'] = 0;
                 $_POST['xyz_smap_lnpost_permission'] = 0;
                 xyz_link_publish(intval($_GET["id"]));
-                header("Location: admin.php?page=social-media-auto-publish-re&ok=1");
+                xyz_redirect("admin.php?page=social-media-auto-publish-re&ok=1");
                 return;
             case "t": // Twitter
                 $_POST['xyz_smap_post_permission'] = 0;
                 $_POST['xyz_smap_twpost_permission'] = 1;
                 $_POST['xyz_smap_lnpost_permission'] = 0;
                 xyz_link_publish(intval($_GET["id"]));
-                header("Location: admin.php?page=social-media-auto-publish-re&ok=1");
+                xyz_redirect("admin.php?page=social-media-auto-publish-re&ok=1");
                 return;
             case "l": // LinkedIn
                 $_POST['xyz_smap_post_permission'] = 0;
                 $_POST['xyz_smap_twpost_permission'] = 0;
                 $_POST['xyz_smap_lnpost_permission'] = 1;
                 xyz_link_publish(intval($_GET["id"]));
-                header("Location: admin.php?page=social-media-auto-publish-re&ok=1");
+                xyz_redirect("admin.php?page=social-media-auto-publish-re&ok=1");
                 return;
             default:
                 break;
