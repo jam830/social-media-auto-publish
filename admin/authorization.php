@@ -21,9 +21,14 @@ add_action('init', 'register_xyz_smap_session');
 $app_id = get_option('xyz_smap_application_id');
 $app_secret = get_option('xyz_smap_application_secret');
 $redirecturl=admin_url('admin.php?page=social-media-auto-publish-settings&auth=1');
-// $lnredirecturl=admin_url('admin.php?page=social-media-auto-publish-settings&auth=3');
+// 	if(is_ssl()===false)
+// 		$redirecturl=preg_replace("/^http:/i", "https:", $redirecturl);
 $my_url=urlencode($redirecturl);
-
+if(isset($_POST) && (isset($_POST['fb_auth']) || isset($_POST['lnauth'])) )
+{
+	ob_clean();
+}
+if ( xyz_smap_is_session_started() === FALSE ) session_start();
 $code="";
 if(isset($_REQUEST['code']))
 $code = $_REQUEST["code"];
@@ -35,31 +40,31 @@ if(isset($_POST['fb_auth']))
 		wp_nonce_ays( 'xyz_smap_fb_auth_form_nonce' );
 		exit();
 	}
-	
+
 		$xyz_smap_session_state = md5(uniqid(rand(), TRUE));
         if (!headers_sent()) {
             setcookie("xyz_smap_session_state", $xyz_smap_session_state, "0", "/");
         } else {
             echo "<script> document.cookie = \"xyz_smap_session_state=$xyz_smap_session_state; path=/\"; </script>";
         }
-		
+
 		$dialog_url = "https://www.facebook.com/".XYZ_SMAP_FB_API_VERSION."/dialog/oauth?client_id="
 		. $app_id . "&redirect_uri=" . $my_url . "&state="
-		. $xyz_smap_session_state . "&scope=email,public_profile,publish_pages,user_posts,publish_actions,manage_pages";
+		. $xyz_smap_session_state . "&scope=email,public_profile,publish_pages,user_posts,manage_pages";
 
-        xyz_redirect($dialog_url);
+		xyz_redirect($dialog_url);
 }
 
 
 if(isset($_COOKIE['xyz_smap_session_state']) && isset($_REQUEST['state']) && ($_COOKIE['xyz_smap_session_state'] === $_REQUEST['state'])) {
-	
+
 	$token_url = "https://graph.facebook.com/".XYZ_SMAP_FB_API_VERSION."/oauth/access_token?"
 	. "client_id=" . $app_id . "&redirect_uri=" . $my_url
 	. "&client_secret=" . $app_secret . "&code=" . $code;
-	
+
 	$params = null;$access_token="";
 	$response = wp_remote_get($token_url,array('sslverify'=> (get_option('xyz_smap_peer_verification')=='1') ? true : false));
-	
+
 	if(is_array($response))
 	{
 		if(isset($response['body']))
@@ -73,13 +78,13 @@ if(isset($_COOKIE['xyz_smap_session_state']) && isset($_REQUEST['state']) && ($_
 			//$access_token = $params['access_token'];
 		}
 	}
-	
+
 	if($access_token!="")
 	{
 		update_option('xyz_smap_fb_token',$access_token);
 		update_option('xyz_smap_af',0);
-		
-		
+
+
 		$offset=0;$limit=100;$data=array();
 		//$fbid=get_option('xyz_smap_fb_id');
 		do
@@ -100,16 +105,16 @@ if(isset($_COOKIE['xyz_smap_session_state']) && isset($_REQUEST['state']) && ($_
 // 				break;
 // 		}while(array_key_exists("next", $pagearray1->paging));
 		}while(isset($pagearray1->paging->next));
-		
-		
-		
+
+
+
 		$count=count($data);
-			
+
 		$smap_pages_ids1=get_option('xyz_smap_pages_ids');
 		$smap_pages_ids0=array();$newpgs="";
 		if($smap_pages_ids1!="")
 			$smap_pages_ids0=explode(",",$smap_pages_ids1);
-		
+
 		$smap_pages_ids=array();$profile_flg=0;
 		for($i=0;$i<count($smap_pages_ids0);$i++)
 		{
@@ -119,7 +124,7 @@ if(isset($_COOKIE['xyz_smap_session_state']) && isset($_REQUEST['state']) && ($_
 			$smap_pages_ids[$i]=$smap_pages_ids0[$i];$profile_flg=1;
 			}
 		}
-		
+
 		for($i=0;$i<$count;$i++)
 		{
 		if(in_array($data[$i]->id, $smap_pages_ids))
@@ -134,7 +139,7 @@ if(isset($_COOKIE['xyz_smap_session_state']) && isset($_REQUEST['state']) && ($_
            				$newpgs=-1;
 					}
 		update_option('xyz_smap_pages_ids',$newpgs);
-		
+
 		$url = 'https://graph.facebook.com/'.XYZ_SMAP_FB_API_VERSION.'/me?access_token='.$access_token;
 		$contentget=wp_remote_get($url,array('sslverify'=> (get_option('xyz_smap_peer_verification')=='1') ? true : false));$page_id='';
 		if(is_array($contentget))
@@ -148,9 +153,9 @@ if(isset($_COOKIE['xyz_smap_session_state']) && isset($_REQUEST['state']) && ($_
         xyz_redirect(admin_url('admin.php?page=social-media-auto-publish-settings&auth=1'));
 	}
 	else {
-		
+
 		$xyz_smap_af=get_option('xyz_smap_af');
-		
+
 		if($xyz_smap_af==1){
             xyz_redirect(admin_url('admin.php?page=social-media-auto-publish-settings&msg=3'));
 			exit();
@@ -158,7 +163,7 @@ if(isset($_COOKIE['xyz_smap_session_state']) && isset($_REQUEST['state']) && ($_
 	}
 }
 else {
-	
+
 	//header("Location:".admin_url('admin.php?page=social-media-auto-publish-settings&msg=2'));
 	//exit();
 }
@@ -182,7 +187,7 @@ $redirecturl=urlencode(admin_url('admin.php?page=social-media-auto-publish-setti
 			wp_redirect($linkedin_auth_url);
 			echo '<script>document.location.href="'.$linkedin_auth_url.'"</script>';
 			die;
-		
+
 		}
 	}
 	if( isset($_GET['error']) && isset($_GET['error_description']) )//if any error
